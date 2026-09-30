@@ -425,3 +425,11 @@ That a CombinedFragment is extra-global depicts that there is a CombinedFragment
 the decomposed Lifeline in its Interaction. The full understanding of that (higher level) CombinedFragment must be 
 acquired through combining the operands of the decompositions operand by operand
 
+## 11.7.4 Notation
+A Collaboration is shown as a dashed ellipse shape containing the name of the Collaboration. The internal structure of a 
+Collaboration as comprised by collaborationRoles and Connectors may be shown in a compartment within the dashed 
+ellipse shape. This compartment follows the same notational specification as for the internal structure compartment of a 
+normal Classifier rectangle.
+Alternatively, a composite structure diagram can be used, or a normal Classifier rectangle with the keyword 
+«collaboration».
+There is no notation defined for a Collaboration whose collaborationRoles are not Properties
