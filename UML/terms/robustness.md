@@ -527,6 +527,380 @@ Timing
 Verilog
 ```
 
+# Q3 九州大学と協力して、論理回路設計でロバストネス図を書くという演習をしたことがあります。最近の題材だと何がよいでしょうか。４つ例を示してください。
+A3
+
+はい。九州大学との演習で「論理回路設計にロバストネス図を使う」という実績があるなら、最近の題材では、**単純なAND/OR回路より「複数の状態・入力・時間制約があるもの」**を選ぶと、ロバストネス図の意味が出やすいです。
+
+特に、現在の半導体・自動車・AI・エッジコンピューティングを考えると、次の4題材が面白いと思います。
+
+| 題材 | Boundary | Control | Entity | 発展先 |
+|---|---|---|---|---|
+| ① AIカメラ画像処理アクセラレータ | Camera / Host | Preprocess / MAC / Postprocess | Feature Map / Weight | RTL・NPU |
+| ② 車載ゾーンECU | CAN/Ethernet / Sensor | Gateway / Diagnostic | Vehicle State | AUTOSAR・RTL |
+| ③ RISC-V AIエッジSoC | CPU / Sensor / Memory | Scheduler / Accelerator Control | Register / Buffer | SoC・FPGA |
+| ④ バッテリ管理回路 | Cell / Current Sensor / Charger | SOC/SOH / Protection | Battery State | BMS・安全設計 |
+
+以下、PlantUMLで具体化します。
+
+---
+
+# ① AIカメラ画像処理アクセラレータ
+
+最近の題材としてかなり分かりやすいです。
+
+カメラから画像を受け取り、
+
+```text
+Camera
+ ↓
+Preprocess
+ ↓
+CNN / MAC
+ ↓
+Postprocess
+ ↓
+Detection Result
+```
+
+という処理を論理回路化します。
+
+```plantuml
+@startuml
+title Robustness Diagram - AI Vision Accelerator
+
+left to right direction
+
+boundary "Camera\nPixel Input" as camera
+boundary "Host CPU" as cpu
+boundary "Result Output" as output
+
+control "Image Preprocessor" as pre
+control "MAC Accelerator" as mac
+control "Post Processor" as post
+
+entity "Image Buffer" as image
+entity "Weight Memory" as weight
+entity "Feature Map" as feature
+entity "Detection Result" as result
+
+camera --> pre : pixel stream
+
+pre --> image : normalized image
+image --> mac : input feature
+
+weight --> mac : weights
+mac --> feature : feature map
+
+feature --> post : feature map
+post --> result : detection
+
+result --> output
+cpu --> mac : start/configuration
+
+@enduml
+```
+
+### 演習のポイント
+
+ここから、
+
+- 画像入力のタイミング
+- MAC演算の並列度
+- SRAMアクセス
+- DMA
+- Pipeline
+- Clock
+- Buffer Full/Empty
+
+などを考えられます。
+
+したがって、
+
+**Robustness Diagram → State Machine → Timing Diagram → RTL**
+
+という流れが非常に作りやすい題材です。
+
+---
+
+# ② 車載ゾーンECU
+
+自動車なら、最近は**ゾーンアーキテクチャ**を題材にすると面白いです。
+
+例えば左前方のゾーンECUが、
+
+- センサ
+- CAN/CAN FD
+- Automotive Ethernet
+- アクチュエータ
+
+をまとめる構成です。
+
+```plantuml
+@startuml
+title Robustness Diagram - Automotive Zone ECU
+
+left to right direction
+
+boundary "Sensors" as sensor
+boundary "CAN / CAN FD" as can
+boundary "Automotive Ethernet" as eth
+boundary "Actuator" as actuator
+
+control "Zone Gateway" as gateway
+control "Signal Processor" as processor
+control "Diagnostic Control" as diag
+
+entity "Vehicle State" as vehicle
+entity "Diagnostic State" as diagnostic
+entity "Signal Buffer" as buffer
+
+sensor --> processor : sensor data
+
+processor --> buffer : processed signal
+buffer --> gateway : signal
+
+can --> gateway : CAN message
+eth --> gateway : Ethernet message
+
+gateway --> vehicle : update state
+
+vehicle --> processor : vehicle state
+
+gateway --> diag : diagnostic request
+diag --> diagnostic : update
+
+gateway --> actuator : control command
+
+@enduml
+```
+
+これは小川さんの**AUTOSAR、CAN、Ethernet、ECU**の教材にもつなげやすいです。
+
+さらに、
+
+```text
+CAN
+ ↓
+Gateway
+ ↓
+Signal
+ ↓
+State
+ ↓
+Control
+ ↓
+Actuator
+```
+
+という流れを、**UMLからAUTOSAR Software Componentへ対応付ける**演習にもできます。
+
+---
+
+# ③ RISC-V＋AIアクセラレータSoC
+
+これは半導体設計そのものを題材にできます。
+
+最近なら、
+
+> **RISC-V CPU + AI Accelerator + DMA + SRAM**
+
+という構成を一つの演習課題にするのが面白いです。
+
+```plantuml
+@startuml
+title Robustness Diagram - RISC-V AI SoC
+
+left to right direction
+
+boundary "Sensor" as sensor
+boundary "RISC-V CPU" as cpu
+boundary "External Memory" as ext
+boundary "Output" as output
+
+control "DMA Controller" as dma
+control "AI Accelerator" as ai
+control "Interrupt Controller" as irq
+
+entity "SRAM Buffer" as sram
+entity "Control Registers" as reg
+entity "AI Model" as model
+entity "Processing State" as state
+
+sensor --> dma : sensor data
+dma --> sram : transfer
+
+cpu --> reg : configuration
+reg --> ai : accelerator parameters
+
+sram --> ai : input data
+model --> ai : weights
+
+ai --> sram : result
+ai --> irq : completion
+
+irq --> cpu : interrupt
+
+sram --> dma : output data
+dma --> ext : store result
+
+ext --> output
+
+@enduml
+```
+
+この題材の良いところは、**論理回路だけでは終わらない**ことです。
+
+学生に、
+
+> 「CPUで全部計算するのと、専用回路にするのでは何が違う？」
+
+を考えさせられます。
+
+そして、
+
+- 面積
+- 消費電力
+- レイテンシ
+- スループット
+- メモリ帯域
+- 並列度
+
+という、現在の半導体設計の重要なトレードオフに進めます。
+
+---
+
+# ④ BMS（Battery Management System）
+
+4つ目は、**安全工学まで含められる**題材です。
+
+例えば、
+
+```text
+Battery Cell
+ ↓
+Voltage/Current Sensor
+ ↓
+Protection Logic
+ ↓
+MOSFET
+```
+
+という回路です。
+
+```plantuml
+@startuml
+title Robustness Diagram - Battery Management System
+
+left to right direction
+
+boundary "Battery Cells" as cell
+boundary "Voltage Sensor" as vs
+boundary "Current Sensor" as cs
+boundary "Temperature Sensor" as ts
+
+control "Measurement Control" as measure
+control "SOC/SOH Estimator" as estimator
+control "Protection Logic" as protection
+control "Charge/Discharge Control" as charge
+
+entity "Battery State" as battery
+entity "Threshold Parameters" as threshold
+entity "Fault State" as fault
+
+boundary "MOSFET / Contactor" as switch
+boundary "Charger / Inverter" as power
+
+cell --> vs : cell voltage
+cell --> cs : current
+cell --> ts : temperature
+
+vs --> measure
+cs --> measure
+ts --> measure
+
+measure --> battery : measurement data
+
+battery --> estimator
+estimator --> battery : SOC / SOH
+
+battery --> protection
+threshold --> protection
+
+protection --> fault : fault detection
+fault --> protection : protection state
+
+protection --> switch : ON/OFF
+
+charge --> switch
+charge --> power
+
+battery --> charge : battery state
+
+@enduml
+```
+
+これは特に、
+
+**正常状態 → 過充電 → 過放電 → 過電流 → 過温度 → Fault**
+
+という状態機械へ展開できます。
+
+さらにタイミング図を使って、
+
+```text
+Voltage
+Temperature
+Current
+       ↓
+Detection
+       ↓
+Protection
+       ↓
+MOSFET OFF
+```
+
+の**安全機能の応答時間**を検討できます。
+
+---
+
+# 4題材を並べると
+
+私なら九州大学との演習を現在版に更新するなら、次の4段階にします。
+
+```text
+① AI Accelerator
+       ↓
+② Automotive Zone ECU
+       ↓
+③ RISC-V + AI SoC
+       ↓
+④ BMS Safety Logic
+```
+
+それぞれ違う能力を要求できます。
+
+| 題材 | 主な学習テーマ |
+|---|---|
+| AI Accelerator | データフロー・並列処理 |
+| Zone ECU | 通信・分散システム |
+| RISC-V SoC | CPUと専用HWの協調 |
+| BMS | 状態・故障・安全 |
+
+そして4題材に共通して、
+
+**Boundary → Control → Entity**
+
+を最初に描かせる。
+
+その後、
+
+**Robustness Diagram → Sequence Diagram → State Machine Diagram → Timing Diagram → RTL**
+
+まで進めると、単なる「UMLのお絵描き」ではなく、**要求分析から論理回路設計までを一貫して扱う演習**になります。
+
+特に小川さんの場合、以前の「状態遷移図からVerilogを生成する」というテーマと組み合わせると、**Robustness DiagramをRTL生成の上流モデルにする**という研究テーマまで自然につながります。
+
 という変換パイプラインを作ることができます。
 
 この考え方だと、**「論理回路の機能要求 → UML → RTL」**という、かなり面白い研究テーマにもできます。
