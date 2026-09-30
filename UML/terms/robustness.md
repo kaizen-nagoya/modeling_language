@@ -260,6 +260,7 @@ control --> ui : order result
 
 @enduml
 ```
+<img width="472" height="258" alt="ec" src="https://github.com/user-attachments/assets/30f6544f-7f59-4b06-b32d-63a987ecaeed" />
 
 ここでは、
 
@@ -315,6 +316,8 @@ control --> screen : transaction complete
 
 @enduml
 ```
+<img width="549" height="161" alt="motor" src="https://github.com/user-attachments/assets/13214b95-819c-4348-9570-8a17e6e1fd5b" />
+<img width="554" height="256" alt="atm" src="https://github.com/user-attachments/assets/ee4cd3e0-e718-45e6-9e67-162f519ab394" />
 
 この例では、**BoundaryとEntityの間にControlを置くことで、処理責務が明確になる**のがポイントです。
 
@@ -358,6 +361,9 @@ motor --> sensor : speed / current
 
 @enduml
 ```
+
+<img width="549" height="161" alt="motor" src="https://github.com/user-attachments/assets/f2d366c7-9d23-43b2-ae62-dfaf222a892f" />
+
 
 この場合、
 
@@ -417,6 +423,9 @@ and --> Y : Y = A AND B
 
 @enduml
 ```
+
+<img width="434" height="183" alt="logic" src="https://github.com/user-attachments/assets/b96a70b5-5c58-4dd5-9adb-873f1d05d636" />
+
 
 ただし、論理回路設計では、もう少しRTL設計に近づけることもできます。
 
