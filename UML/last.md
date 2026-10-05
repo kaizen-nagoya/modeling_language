@@ -101,3 +101,118 @@ A2
  https://colororacle.org/
 
 優先順位をつけるなら、まず2つの修正が効果的です。LINEタイルの文字色の見直し（1・3）と、スライド全体の文字サイズの拡大（8）です。
+
+# Q3 資料の全16枚を読み、中心になる処理を3つ選びました。図の流れはスライドの記述から組み立てたものです。細部（画面名やBOTの内部動作など）は私の推測を含むので、実際の実装に合わせて調整してください。
+
+## 1. 状態遷移図：旅のすごろくんの利用状態
+スライド5〜6の「Googleログイン→すごろく自動生成→保存・PDF化」を状態にしました。
+
+```plantuml
+@startuml
+title 旅のすごろくん：利用状態の遷移
+skinparam shadowing false
+[*] --> 未ログイン
+
+未ログイン --> ログイン済 : Googleアカウントで接続
+ログイン済 --> 未ログイン : ログアウト
+
+state ログイン済 {
+  [*] --> 旅程入力
+  旅程入力 --> すごろく表示 : 1日ごとに自動生成
+  すごろく表示 --> 旅程入力 : 内容を修正
+  すごろく表示 --> 保存済 : スプレッドシートに保存
+  すごろく表示 --> PDF出力済 : PDFに保存
+  保存済 --> 掲示板閲覧 : 他の人の記事を見る
+  掲示板閲覧 --> 保存済 : 戻る
+  保存済 --> 旅程入力 : 新しい旅を追加
+  PDF出力済 --> 保存済
+}
+note right of すごろく表示
+  訪問した都道府県・国を
+  色で表示
+end note
+@enduml
+```
+
+## 2. 時系列図（シーケンス図）：ログインから保存まで
+スライド6・9の「Googleログイン、Google Apps Script、スプレッドシートに保存」の流れです。
+
+```plantuml
+@startuml
+title 旅の記録をクラウドに保存する流れ
+skinparam shadowing false
+actor 利用者
+participant "旅のすごろくん\n(Netlify)" as App
+participant "Google認証" as Auth
+participant "Google Apps Script" as GAS
+database "スプレッドシート" as Sheet
+
+利用者 -> App : アプリを開く
+App -> 利用者 : ログイン画面
+利用者 -> Auth : Googleアカウントでログイン
+Auth --> App : ログイン完了（ユーザー情報）
+利用者 -> App : 旅程を入力
+App -> App : 1日ごとにすごろくを自動生成
+App --> 利用者 : すごろく盤面を表示
+
+利用者 -> App : 保存
+App -> GAS : 旅の記録を送信
+GAS -> Sheet : 行を追加
+Sheet --> GAS : 完了
+GAS --> App : 保存完了
+App --> 利用者 : 保存しました
+
+利用者 -> App : 掲示板を開く
+App -> GAS : 他の人の記事を取得
+GAS -> Sheet : 読み出し
+Sheet --> GAS : 記事一覧
+GAS --> App : 記事一覧
+App --> 利用者 : 記事を表示
+@enduml
+```
+
+## 3. 刻時図（タイミング図）：Discord BOTの毎朝の天気通知
+スライド7の「毎朝9時ごろに全国の天気予報が届く」を、時間軸で表しました。横軸は、8:55を0とした経過分です。
+
+```plantuml
+@startuml
+title 毎朝の天気予報通知（横軸：8:55からの経過分）
+scale 1 as 60 pixels
+
+concise "スケジューラ" as S
+robust  "天気予報BOT" as B
+concise "Discordサーバー" as D
+
+@0
+S is 待機
+B is 待機
+D is 静か
+
+@5
+S is "9:00 起動"
+B is 待機
+
+@6
+S is 待機
+B is 天気取得
+
+@8
+B is メッセージ作成
+
+@9
+B is 送信
+D is 投稿受信
+
+@11
+B is 待機
+D is "全員に通知"
+
+@15
+D is 静か
+@enduml
+```
+
+## 描画方法
+各コードを https://www.plantuml.com/plantuml/ に貼り付けると描画できます。VS CodeのPlantUML拡張機能でも描画できます。
+
+ほかに「おもいでアルバム」の図も作れます。たとえば思い出カードの状態遷移（記録→カテゴリ分け→めくる閲覧→PDF書き出し）などです。
